@@ -1,0 +1,41 @@
+import { expect, test } from 'playwright/test'
+
+test('record a session, reload history offline, and persist the profile', async ({ page, context }) => {
+  await page.goto('./')
+  await expect(page.getByRole('heading', { name: 'Little steps, big wins.' })).toBeVisible()
+  await expect(page.getByText('Exercises mastered')).toBeVisible()
+  await page.getByRole('button', { name: 'Start session' }).click()
+  await page.getByRole('button', { name: 'Start timer' }).click()
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await page.getByRole('button', { name: 'Success', exact: true }).click()
+  }
+  await page.getByRole('button', { name: 'Needs an easier rep' }).click()
+  await page.getByRole('button', { name: 'Finish session' }).click()
+  await page.getByLabel('Session notes (optional)').fill('Ella liked practising here.')
+  await page.getByRole('button', { name: 'Save session' }).click()
+  await expect(page.getByText('4 of 5 repetitions successful · 80%')).toBeVisible()
+  await page.getByRole('button', { name: 'Back to today' }).click()
+  await page.getByRole('link', { name: 'Progress' }).click()
+  await expect(page.getByText('Ella liked practising here.')).toBeVisible()
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller)
+  await context.setOffline(true)
+  await page.reload()
+  await expect(page.getByText('Ella liked practising here.')).toBeVisible()
+  await page.getByRole('link', { name: 'Ella’s profile' }).click()
+  await page.getByLabel('Age in months').fill('9')
+  await page.getByRole('button', { name: 'Save profile' }).click()
+  await expect(page.getByRole('status')).toHaveText('Ella’s profile was saved.')
+  await page.reload()
+  await expect(page.getByLabel('Age in months')).toHaveValue('9')
+})
+
+test('rest day can be toggled and foundations gate later exercises', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Make today a rest day' }).click()
+  await expect(page.getByRole('heading', { name: 'Take it easy, Ella.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Resume daily practice' }).click()
+  await expect(page.getByRole('button', { name: 'Start session' })).toBeVisible()
+  await page.getByRole('link', { name: 'Training path' }).click()
+  await page.getByText('One little step', { exact: true }).click()
+  await expect(page.getByText('Master the previous exercise to unlock practice.').first()).toBeVisible()
+})
